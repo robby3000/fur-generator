@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-base:#1A1714;--bg-surface:#242019;--bg-raised:#2E2A24;--border:#3D382F;--border-strong:#5A5245;
+  --text-muted:#7A7060;--text-body:#C8BBA8;--text-display:#EDE4D4;--accent:#D4622A;--accent-bright:#E8804A;--focus-ring:#E8804A;
+  --font-display:'Fraunces',Georgia,serif;--font-body:'DM Sans',system-ui,sans-serif;--font-mono:'IBM Plex Mono','Courier New',monospace;
+  --pad:clamp(12px,3vw,24px);
+}
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]){
+  --bg-base:#F4EFE6;--bg-surface:#EDE5D8;--bg-raised:#FFFFFF;--border:#D4C9B8;--border-strong:#B8A898;
+  --text-muted:#6F6350;--text-body:#3D3228;--text-display:#1A1714;--accent:#C4521E;--accent-bright:#C4521E;--focus-ring:#C4521E;}}
+:root[data-theme=light]{
+  --bg-base:#F4EFE6;--bg-surface:#EDE5D8;--bg-raised:#FFFFFF;--border:#D4C9B8;--border-strong:#B8A898;
+  --text-muted:#6F6350;--text-body:#3D3228;--text-display:#1A1714;--accent:#C4521E;--accent-bright:#C4521E;--focus-ring:#C4521E;}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:hsl(180 50% 6%);font-family:var(--font-body);color:var(--text-body)}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+#panel{position:fixed;top:calc(var(--pad) + env(safe-area-inset-top,0px));right:calc(var(--pad) + env(safe-area-inset-right,0px));
+  width:min(320px,calc(100% - 2*var(--pad)));max-height:calc(100% - 2*var(--pad) - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;background:var(--bg-surface);border:1px solid var(--border-strong);border-radius:2px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 8px 8px 16px}
+h1{margin:0;font:600 1.25rem/1 var(--font-display);font-variation-settings:'opsz' 72;color:var(--text-display)}
+.mono{font-family:var(--font-mono);font-size:.75rem;color:var(--text-muted)}
+#body{overflow:auto;padding:0 16px 16px;border-top:1px solid var(--border)}
+#body[hidden]{display:none}
+h2{margin:20px 0 4px;padding-top:12px;border-top:1px solid var(--border);font:400 .75rem var(--font-mono);color:var(--text-muted)}
+h2:first-child{border-top:0;padding-top:0;margin-top:16px}
+.row{display:block;padding:4px 0}
+.row>span{display:flex;justify-content:space-between;font-size:.875rem}
+output{font:400 .75rem var(--font-mono);color:var(--text-muted)}
+input[type=range]{width:100%;height:28px;margin:0;accent-color:var(--accent)}
+input[type=number],select{width:100%;min-height:44px;padding:0 8px;background:var(--bg-raised);color:var(--text-display);border:1px solid var(--border-strong);border-radius:4px;font:400 .875rem var(--font-mono)}
+button{min-height:44px;padding:0 16px;background:var(--bg-raised);color:var(--text-display);border:1px solid var(--border-strong);border-radius:4px;font:500 .875rem var(--font-body);cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+button:disabled{opacity:.5;cursor:default}
+.pri{border-color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.seed{display:grid;grid-template-columns:1fr auto;gap:8px}
+#status{min-height:1.2em;margin:12px 0 0}
+:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+:focus:not(:focus-visible){outline:none}
+@media(max-width:600px){#panel{top:auto;bottom:calc(var(--pad) + env(safe-area-inset-bottom,0px));max-height:55%}}
+</style>
+</head>
+<body>
+<canvas id="fur" aria-hidden="true"></canvas>
+<main id="panel">
+  <header>
+    <h1>Fur</h1>
+    <button id="tog" type="button" aria-expanded="true" aria-controls="body">Hide controls</button>
+  </header>
+  <div id="body"></div>
+</main>
+<script>
+(function(){
+var DEF={hue:179,spread:14,sat:46,bg:6,bright:0,contrast:1,density:1,length:1,thick:1,clump:.45,csize:16,dir:90,swirl:2.2,ssize:260,curl:.7,jitter:.35,seed:0};
+var G=[
+ ['Colour',[['hue','Hue',0,360,1,'°'],['spread','Hue spread',0,60,1],['sat','Saturation',0,100,1],['bg','Base lightness',0,30,1]]],
+ ['Tone',[['bright','Brightness',-10,25,1],['contrast','Contrast',.3,2.5,.05]]],
+ ['Fur',[['density','Density',.2,2.5,.05],['length','Length',.4,3,.05],['thick','Thickness',.4,3,.05],['clump','Clumping',0,1,.05],['csize','Clump size',4,60,1]]],
+ ['Flow',[['dir','Direction',0,360,1,'°'],['swirl','Swirl strength',0,4,.1],['ssize','Swirl size',60,600,10],['curl','Curl',0,2,.05],['jitter','Jitter',0,1.5,.05]]]
+];
+var layers=[
+ {k:.07,len:[10,20],w:[1,1.8],l:[4,10],a:[.8,1]},
+ {k:.06,len:[14,26],w:[.8,1.4],l:[8,17],a:[.6,.95]},
+ {k:.045,len:[16,30],w:[.6,1.1],l:[13,26],a:[.5,.9]},
+ {k:.012,len:[18,32],w:[.5,.9],l:[22,34],a:[.35,.7]}
+];
+var P=Object.assign({},DEF);P.seed=Math.floor(Math.random()*900000)+100000;
+var cv=document.getElementById('fur'),ctx=cv.getContext('2d'),box=document.getElementById('body');
+var dl=null,sc=1,exporting=false;
+
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function lerp(r,p){return p[0]+(p[1]-p[0])*r}
+
+function paint(c0,w,h,dpr,q,alive,done){
+  var c=c0.getContext('2d');
+  c0.width=Math.round(w*dpr);c0.height=Math.round(h*dpr);
+  c.setTransform(dpr,0,0,dpr,0,0);
+  c.fillStyle='hsl('+P.hue+' 50% '+P.bg+'%)';c.fillRect(0,0,w,h);c.lineCap='round';
+  var sr=rng(P.seed),N=new Float32Array(65536);for(var i=0;i<65536;i++)N[i]=sr();
+  function g(a,b){return N[((b&255)<<8)|(a&255)]}
+  function sm(t){return t*t*(3-2*t)}
+  function noise(x,y){var xi=Math.floor(x),yi=Math.floor(y),xf=sm(x-xi),yf=sm(y-yi);
+    var t=g(xi,yi)+(g(xi+1,yi)-g(xi,yi))*xf,b=g(xi,yi+1)+(g(xi+1,yi+1)-g(xi,yi+1))*xf;return t+(b-t)*yf}
+  var wq=q<1?1.5:1,dir=P.dir*Math.PI/180;
+  function hair(L,r){
+    var x=r()*(w+40)-20,y=r()*(h+40)-20,len=lerp(r(),L.len)*P.length;
+    var a=dir+(noise(x/P.ssize,y/P.ssize)-.5)*P.swirl+(noise(x/(P.ssize*.21),y/(P.ssize*.21))-.5)*P.swirl*.41+(r()-.5)*P.jitter;
+    var cu=(r()-.5)*P.curl;
+    var l0=L.l[0]+(L.l[1]-L.l[0])*((1-P.clump)*r()+P.clump*noise(x/P.csize,y/P.csize));
+    var l=Math.max(1,Math.min(94,16+(l0-16)*P.contrast+P.bright));
+    var hu=P.hue+(r()-.5)*P.spread+(noise(x/400,y/400)-.5)*P.spread*.57;
+    var s=Math.max(0,Math.min(100,P.sat-10+r()*20));
+    c.strokeStyle='hsla('+hu.toFixed(1)+','+s.toFixed(1)+'%,'+l.toFixed(1)+'%,'+lerp(r(),L.a).toFixed(2)+')';
+    c.lineWidth=lerp(r(),L.w)*P.thick*wq;
+    var mx=x+Math.cos(a)*len*.5,my=y+Math.sin(a)*len*.5;
+    c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(mx,my,mx+Math.cos(a+cu)*len*.5,my+Math.sin(a+cu)*len*.5);c.stroke();
+  }
+  var tasks=layers.map(function(L,i){return{L:L,n:Math.round(w*h*L.k*P.density*q),r:rng(P.seed+i*977),d:0}}),ti=0;
+  (function step(){
+    if(!alive())return;
+    var t=tasks[ti],end=Math.min(t.n,t.d+25000);
+    for(;t.d<end;t.d++)hair(t.L,t.r);
+    if(t.d>=t.n)ti++;
+    if(ti<tasks.length)requestAnimationFrame(step);else done();
+  })();
+}
+
+var tok=0,running=false,pending=false;
+function draw(q){
+  if(q<1&&running){pending=true;return}
+  var my=++tok;running=true;pending=false;
+  var off=document.createElement('canvas');
+  paint(off,innerWidth,innerHeight,Math.min(window.devicePixelRatio||1,2),q,function(){return my===tok},function(){
+    cv.width=off.width;cv.height=off.height;ctx.drawImage(off,0,0);
+    running=false;if(pending){pending=false;draw(.3)}
+  });
+}
+
+function fmt(v,st){return(+v).toFixed(st<.1?2:st<1?1:0)}
+function mk(tag,props,parent){var e=document.createElement(tag);Object.assign(e,props||{});if(parent)parent.appendChild(e);return e}
+var ctl={};
+G.forEach(function(gr){
+  mk('h2',{textContent:gr[0]},box);
+  gr[1].forEach(function(d){
+    var k=d[0],lab=mk('label',{className:'row'},box),top=mk('span',{},lab);
+    mk('span',{textContent:d[1]},top);var out=mk('output',{},top);
+    var inp=mk('input',{type:'range',min:d[2],max:d[3],step:d[4],value:P[k]},lab);
+    out.textContent=fmt(P[k],d[4])+(d[5]||'');
+    inp.addEventListener('input',function(){P[k]=+inp.value;out.textContent=fmt(P[k],d[4])+(d[5]||'');draw(.3)});
+    inp.addEventListener('change',function(){draw(1)});
+    ctl[k]=[inp,out,d];
+  });
+});
+mk('h2',{textContent:'Seed'},box);
+var sw=mk('div',{className:'seed'},box);
+var seedIn=mk('input',{type:'number',min:0,max:999999,step:1,value:P.seed},sw);seedIn.setAttribute('aria-label','Seed');
+var shuf=mk('button',{type:'button',textContent:'Shuffle'},sw);
+seedIn.addEventListener('change',function(){P.seed=Math.max(0,Math.min(999999,Math.floor(+seedIn.value)||0));seedIn.value=P.seed;draw(1)});
+shuf.addEventListener('click',function(){P.seed=Math.floor(Math.random()*900000)+100000;seedIn.value=P.seed;draw(1)});
+
+mk('h2',{textContent:'Export'},box);
+var lab=mk('label',{className:'row'},box),top=mk('span',{},lab);
+mk('span',{textContent:'Image size'},top);var dim=mk('output',{},top);
+var sel=mk('select',{},lab);
+[1,2,3].forEach(function(n){mk('option',{value:n,textContent:n+'× screen'},sel)});
+function updDim(){dim.textContent=Math.round(innerWidth*sc)+' × '+Math.round(innerHeight*sc)+' px'}
+sel.addEventListener('change',function(){sc=+sel.value;updDim()});updDim();
+var two=mk('div',{className:'two'},box);
+var bPng=mk('button',{type:'button',className:'pri',textContent:'Export PNG',disabled:true},two);
+var bJson=mk('button',{type:'button',textContent:'Save settings',disabled:true},two);
+mk('h2',{textContent:'Code'},box);
+var two2=mk('div',{className:'two'},box);
+var bPage=mk('button',{type:'button',className:'pri',textContent:'Save page',disabled:true},two2);
+var bJs=mk('button',{type:'button',textContent:'Save script',disabled:true},two2);
+mk('p',{className:'mono',textContent:'Bakes in the current settings and seed. The script saves as .txt; rename it to fur.js. Add data-fur to any element to texture just that element, otherwise the fur fills the page behind your content.'},box);
+var bReset=mk('button',{type:'button',textContent:'Reset to defaults',style:'width:100%;margin-top:8px'},box);
+var st=mk('p',{className:'mono',id:'status'},box);st.setAttribute('aria-live','polite');
+function say(t){st.textContent=t}
+
+function save(req){
+  return dl.save(req).then(function(){say('Saved.')}).catch(function(e){
+    say(e&&e.code==='declined'?'Export cancelled.':'Couldn’t save — try again.');
+  });
+}
+bPng.addEventListener('click',function(){
+  if(!dl||exporting)return;exporting=true;bPng.disabled=true;say('Rendering '+sc+'× image…');
+  var off=document.createElement('canvas');
+  paint(off,innerWidth,innerHeight,sc,1,function(){return true},function(){
+    off.toBlob(function(b){
+      if(!b){say('Couldn’t render at this size — try a smaller one.');exporting=false;bPng.disabled=false;return}
+      save({filename:'fur-'+P.seed+'-'+sc+'x.png',data:b}).then(function(){exporting=false;bPng.disabled=false});
+    },'image/png');
+  });
+});
+bJson.addEventListener('click',function(){if(dl)save({filename:'fur-settings-'+P.seed+'.json',data:JSON.stringify(P,null,2)})});
+
+var RUNTIME=`var targets=[].slice.call(document.querySelectorAll('[data-fur]'));
+function render(cv,w,h){
+  if(!w||!h)return;
+  var my=cv._t=(cv._t||0)+1,off=document.createElement('canvas');
+  paint(off,w,h,Math.min(window.devicePixelRatio||1,2),1,function(){return my===cv._t},function(){
+    cv.width=off.width;cv.height=off.height;cv.getContext('2d').drawImage(off,0,0);
+  });
+}
+function mount(el,page){
+  var cv=document.createElement('canvas'),s=cv.style,base='hsl('+P.hue+' 50% '+P.bg+'%)';
+  cv.setAttribute('aria-hidden','true');
+  s.position=page?'fixed':'absolute';s.inset='0';s.width='100%';s.height='100%';s.zIndex='-1';s.pointerEvents='none';s.borderRadius='inherit';
+  if(page){document.documentElement.style.background=base;document.body.prepend(cv)}
+  else{if(getComputedStyle(el).position==='static')el.style.position='relative';el.style.isolation='isolate';el.style.background=base;el.prepend(cv)}
+  var lw=0,lh=0,t;
+  function go(){
+    var w=page?innerWidth:el.clientWidth,h=page?innerHeight:el.clientHeight;
+    if(w!==lw||Math.abs(h-lh)>(page?120:0)){lw=w;lh=h;render(cv,w,h)}
+  }
+  go();
+  function later(){clearTimeout(t);t=setTimeout(go,200)}
+  if(!page&&window.ResizeObserver)new ResizeObserver(later).observe(el);else addEventListener('resize',later);
+}
+function init(){if(targets.length)targets.forEach(function(el){mount(el,false)});else mount(document.body,true)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();`;
+
+function buildScript(){
+  return ['/* Fur texture, made with the fur generator (seed '+P.seed+').',
+  '   Edit the numbers in P to retune it, or set window.FUR_CONFIG before this script loads.',
+  '   Add data-fur to any element to texture just that element; otherwise the fur fills the page',
+  '   behind your content (do not give body an opaque background). */',
+  '(function(){','var P='+JSON.stringify(P,null,2)+';','Object.assign(P,window.FUR_CONFIG||{});',
+  'var layers='+JSON.stringify(layers)+';',rng.toString(),lerp.toString(),paint.toString(),RUNTIME,'})();'].join('\n');
+}
+function buildPage(){
+  return '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>Fur</title>\n<style>html,body{height:100%;margin:0}</style>\n</head>\n<body>\n<'+'!-- Your content goes here; the fur sits behind it. --'+'>\n<scr'+'ipt>\n'+buildScript()+'\n<\/scr'+'ipt>\n</body>\n</html>\n';
+}
+bPage.addEventListener('click',function(){if(dl)save({filename:'fur-'+P.seed+'.html',data:buildPage()})});
+bJs.addEventListener('click',function(){if(dl)save({filename:'fur-'+P.seed+'-script.txt',data:buildScript()})});
+bReset.addEventListener('click',function(){
+  var s=P.seed;Object.assign(P,DEF);P.seed=s;
+  for(var k in ctl){ctl[k][0].value=P[k];ctl[k][1].textContent=fmt(P[k],ctl[k][2][4])+(ctl[k][2][5]||'')}
+  draw(1);
+});
+
+if(window.claude&&claude.use){
+  claude.use('downloads').then(function(d){
+    if(d){dl=d;bPng.disabled=false;bJson.disabled=false;bPage.disabled=false;bJs.disabled=false}else say('Export isn’t available in this view.');
+  }).catch(function(){say('Export isn’t available in this view.')});
+}else say('Export isn’t available in this view.');
+
+var tg=document.getElementById('tog');
+tg.addEventListener('click',function(){
+  var open=box.hidden;box.hidden=!open;tg.setAttribute('aria-expanded',open);tg.textContent=open?'Hide controls':'Controls';
+});
+
+var rt,lw=innerWidth,lh=innerHeight;
+addEventListener('resize',function(){
+  clearTimeout(rt);rt=setTimeout(function(){
+    if(innerWidth!==lw||Math.abs(innerHeight-lh)>120){lw=innerWidth;lh=innerHeight;updDim();draw(1)}
+  },200);
+});
+draw(1);
+})();
+</script>
+</body>
+</html>
