@@ -22,6 +22,6 @@ Sliders redraw at reduced quality while you drag, then repaint at full quality o
 
 ## Exporting
 
-The file was written to run inside a Claude artifact, so the export buttons call `claude.use('downloads')`. In a plain browser tab they stay disabled and the status line reads "Export isn't available in this view." The generator itself works anywhere.
+Everything saves as a normal browser download. Four options: a PNG at 1–3× screen size, the current settings as JSON, a standalone HTML page, and a standalone script with your settings baked in. The script saves as `.txt`; rename it to `fur.js` before use.
 
-Where exports are available you get four options: a PNG at 1–3× screen size, the current settings as JSON, a standalone HTML page, and a standalone script with your settings baked in. The baked script textures any element carrying a `data-fur` attribute, or fills the whole page behind your content if nothing is marked.
+The baked script textures any element carrying a `data-fur` attribute, or fills the whole page behind your content if nothing is marked.

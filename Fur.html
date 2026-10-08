@@ -76,7 +76,7 @@ var layers=[
 ];
 var P=Object.assign({},DEF);P.seed=Math.floor(Math.random()*900000)+100000;
 var cv=document.getElementById('fur'),ctx=cv.getContext('2d'),box=document.getElementById('body');
-var dl=null,sc=1,exporting=false;
+var sc=1,exporting=false;
 
 function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 function lerp(r,p){return p[0]+(p[1]-p[0])*r}
@@ -156,24 +156,30 @@ var sel=mk('select',{},lab);
 function updDim(){dim.textContent=Math.round(innerWidth*sc)+' × '+Math.round(innerHeight*sc)+' px'}
 sel.addEventListener('change',function(){sc=+sel.value;updDim()});updDim();
 var two=mk('div',{className:'two'},box);
-var bPng=mk('button',{type:'button',className:'pri',textContent:'Export PNG',disabled:true},two);
-var bJson=mk('button',{type:'button',textContent:'Save settings',disabled:true},two);
+var bPng=mk('button',{type:'button',className:'pri',textContent:'Export PNG'},two);
+var bJson=mk('button',{type:'button',textContent:'Save settings'},two);
 mk('h2',{textContent:'Code'},box);
 var two2=mk('div',{className:'two'},box);
-var bPage=mk('button',{type:'button',className:'pri',textContent:'Save page',disabled:true},two2);
-var bJs=mk('button',{type:'button',textContent:'Save script',disabled:true},two2);
+var bPage=mk('button',{type:'button',className:'pri',textContent:'Save page'},two2);
+var bJs=mk('button',{type:'button',textContent:'Save script'},two2);
 mk('p',{className:'mono',textContent:'Bakes in the current settings and seed. The script saves as .txt; rename it to fur.js. Add data-fur to any element to texture just that element, otherwise the fur fills the page behind your content.'},box);
 var bReset=mk('button',{type:'button',textContent:'Reset to defaults',style:'width:100%;margin-top:8px'},box);
 var st=mk('p',{className:'mono',id:'status'},box);st.setAttribute('aria-live','polite');
 function say(t){st.textContent=t}
 
 function save(req){
-  return dl.save(req).then(function(){say('Saved.')}).catch(function(e){
-    say(e&&e.code==='declined'?'Export cancelled.':'Couldn’t save — try again.');
-  });
+  try{
+    var blob=req.data instanceof Blob?req.data:new Blob([req.data]);
+    var url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=req.filename;
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url)},5000);
+    say('Saved.');
+  }catch(e){say('Couldn’t save — try again.')}
+  return Promise.resolve();
 }
 bPng.addEventListener('click',function(){
-  if(!dl||exporting)return;exporting=true;bPng.disabled=true;say('Rendering '+sc+'× image…');
+  if(exporting)return;exporting=true;bPng.disabled=true;say('Rendering '+sc+'× image…');
   var off=document.createElement('canvas');
   paint(off,innerWidth,innerHeight,sc,1,function(){return true},function(){
     off.toBlob(function(b){
@@ -182,7 +188,7 @@ bPng.addEventListener('click',function(){
     },'image/png');
   });
 });
-bJson.addEventListener('click',function(){if(dl)save({filename:'fur-settings-'+P.seed+'.json',data:JSON.stringify(P,null,2)})});
+bJson.addEventListener('click',function(){save({filename:'fur-settings-'+P.seed+'.json',data:JSON.stringify(P,null,2)})});
 
 var RUNTIME=`var targets=[].slice.call(document.querySelectorAll('[data-fur]'));
 function render(cv,w,h){
@@ -221,19 +227,13 @@ function buildScript(){
 function buildPage(){
   return '<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n<title>Fur</title>\n<style>html,body{height:100%;margin:0}</style>\n</head>\n<body>\n<'+'!-- Your content goes here; the fur sits behind it. --'+'>\n<scr'+'ipt>\n'+buildScript()+'\n<\/scr'+'ipt>\n</body>\n</html>\n';
 }
-bPage.addEventListener('click',function(){if(dl)save({filename:'fur-'+P.seed+'.html',data:buildPage()})});
-bJs.addEventListener('click',function(){if(dl)save({filename:'fur-'+P.seed+'-script.txt',data:buildScript()})});
+bPage.addEventListener('click',function(){save({filename:'fur-'+P.seed+'.html',data:buildPage()})});
+bJs.addEventListener('click',function(){save({filename:'fur-'+P.seed+'-script.txt',data:buildScript()})});
 bReset.addEventListener('click',function(){
   var s=P.seed;Object.assign(P,DEF);P.seed=s;
   for(var k in ctl){ctl[k][0].value=P[k];ctl[k][1].textContent=fmt(P[k],ctl[k][2][4])+(ctl[k][2][5]||'')}
   draw(1);
 });
-
-if(window.claude&&claude.use){
-  claude.use('downloads').then(function(d){
-    if(d){dl=d;bPng.disabled=false;bJson.disabled=false;bPage.disabled=false;bJs.disabled=false}else say('Export isn’t available in this view.');
-  }).catch(function(){say('Export isn’t available in this view.')});
-}else say('Export isn’t available in this view.');
 
 var tg=document.getElementById('tog');
 tg.addEventListener('click',function(){
