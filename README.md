@@ -1,10 +1,12 @@
 # fur-generator
 
-A single-file fur texture generator. Open `Fur.html` in a browser and it fills the page with procedurally drawn fur, rendered on a canvas in four layered passes. A control panel drives colour, density, strand length, flow direction, swirl, and curl. Everything is seeded, so a seed plus settings reproduces the same texture every time.
+A single-file fur texture generator. Open `index.html` in a browser and it fills the page with procedurally drawn fur, rendered on a canvas in four layered passes. A control panel drives colour, density, strand length, flow direction, swirl, and curl. Everything is seeded, so a seed plus settings reproduces the same texture every time.
 
 ## Running it
 
-No build step and no dependencies beyond Google Fonts. Open the file directly, or serve the folder:
+Live at https://robby3000.github.io/fur-generator/ via GitHub Pages.
+
+Locally there is no build step and no dependencies beyond Google Fonts. Open the file directly, or serve the folder:
 
 ```
 python3 -m http.server
